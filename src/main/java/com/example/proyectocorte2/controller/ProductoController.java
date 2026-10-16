@@ -27,6 +27,8 @@ public class ProductoController {
     @FXML
     private TextField txtPrecio;
     @FXML
+    private Label lblContador;
+    @FXML
     private TableView<Producto> tblProductos;
     @FXML
     private TableColumn<Producto, String> colCodigo;
@@ -71,8 +73,13 @@ public class ProductoController {
 
         actualizarTabla();
         cmbCategoriaBusqueda.getItems().clear();
-        cmbCategoriaBusqueda.getItems()
-                .addAll(cmbCategoria.getItems());
+
+        cmbCategoriaBusqueda.getItems().add("Todas");
+        cmbCategoriaBusqueda.getItems().addAll(
+                cmbCategoria.getItems()
+        );
+
+        cmbCategoriaBusqueda.setValue("Todas");
 
         cmbOrdenar.getItems().addAll(
                 "Nombre A-Z",
@@ -119,7 +126,7 @@ public class ProductoController {
         colNombre.setCellValueFactory(
                 new PropertyValueFactory<>("nombre"));
         colCategoria.setCellValueFactory(
-                new PropertyValueFactory<>("nombreCategoria"));
+                new PropertyValueFactory<>("categoria"));
         colPrecio.setCellValueFactory(
                 new PropertyValueFactory<>("precio"));
         colStock.setCellValueFactory(
@@ -184,10 +191,10 @@ public class ProductoController {
             return;
         }
 
-        String sql = "UPDATE catalogos.productos SET "
-                + "codigo = ?, nombre = ?, categoria =?,"
-                + "precio = ?, stock = ?, ";
-
+        String sql = "UPDATE catalogos.productos SET " +
+                "codigo = ?, nombre = ?, categoria = ?, " +
+                "precio = ?, stock = ? " +
+                "WHERE codigo = ?";
 
         try (
                 Connection connection = DatabaseConnection.getConnection();
@@ -201,6 +208,7 @@ public class ProductoController {
                     new BigDecimal(txtPrecio.getText().trim()));
             statement.setInt(5,
                     Integer.parseInt(txtStock.getText().trim()));
+            statement.setString(6, seleccionado.getCodigo());
 
             statement.executeUpdate();
 
@@ -256,7 +264,7 @@ public class ProductoController {
 
             mostrarAlerta(Alert.AlertType.INFORMATION, "Éxito",
                     "Producto eliminado",
-                    "El producto se desactivó correctamente.");
+                    "El producto se elimino correctamente.");
 
             limpiar(null);
             actualizarTabla();
@@ -418,10 +426,14 @@ private void buscarProductos() {
         parametros.add("%" + busqueda + "%");
     }
 
-    // Filtrar por categoría
-    if (cmbCategoriaBusqueda.getValue() != null) {
+    // Filtrar por categoría, excepto cuando se selecciona "Todas"
+    String categoriaSeleccionada = cmbCategoriaBusqueda.getValue();
+
+    if (categoriaSeleccionada != null
+            && !categoriaSeleccionada.equals("Todas")) {
+
         sql.append(" AND categoria = ?");
-        parametros.add(cmbCategoriaBusqueda.getValue());
+        parametros.add(categoriaSeleccionada);
     }
 
     // Mostrar solo productos con existencias
@@ -481,6 +493,17 @@ private void buscarProductos() {
 
                 productos.add(producto);
             }
+            lblContador.setText(
+                    "Resultados: " + productos.size()
+            );
+            if (productos.isEmpty()) {
+                mostrarAlerta(
+                        Alert.AlertType.INFORMATION,
+                        "Búsqueda",
+                        "Sin coincidencias",
+                        "No se encontraron productos con los filtros seleccionados."
+                );
+            }
         }
 
     } catch (SQLException ex) {
@@ -498,7 +521,7 @@ private void buscarProductos() {
     @FXML
     private void limpiarFiltros() {
         txtBuscarCodigoNombre.clear();
-        cmbCategoriaBusqueda.getSelectionModel().clearSelection();
+        cmbCategoriaBusqueda.setValue("Todas");
         chkExistencia.setSelected(false);
         cmbOrdenar.getSelectionModel().clearSelection();
 

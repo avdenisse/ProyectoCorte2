@@ -112,6 +112,7 @@
                                 <Insets top="10.0" />
                             </opaqueInsets>
                         </Button>
+                  <Label fx:id="lblContador" />
                     </children>
                 </HBox>
                 <TableView fx:id="tblProductos" prefHeight="200.0" prefWidth="200.0">
